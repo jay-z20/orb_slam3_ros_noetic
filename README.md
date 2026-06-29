@@ -123,6 +123,13 @@ rosservice call /orb_slam3/save_map [file_name]
 ```
 
 ## 4. ROS topics, params and services
+
+Transforms use **tf2**. Pose topics and the camera TF use the same composition:
+
+`T(world→camera) = world2initial * robot2camera * T_orb(world→camera)`
+
+By default `world2initial` and `robot2camera` are **identity**, so behaviour matches a plain ORB-SLAM3 Twc. The stereo node can set them from TF (`base_link`→`camera`) and an optional `get_first_pose` service (see `uji_stereo.launch` / `cabrera_stereo.launch`).
+
 ### Subscribed topics
 - `/camera/image_raw` for Mono(-Inertial) node
 - `/camera/left/image_raw` for Stereo(-Inertial) node
@@ -130,21 +137,29 @@ rosservice call /orb_slam3/save_map [file_name]
 - `/imu` for Mono/Stereo/RGBD-Inertial node
 - `/camera/rgb/image_raw` and `/camera/depth_registered/image_raw` for RGBD node
 ### Published topics
-- `/orb_slam3/camera_pose`, left camera pose in world frame, published at camera rate
-- `/orb_slam3/body_odom`, imu-body odometry in world frame, published at camera rate
+- `/orb_slam3/camera_pose`, left camera pose in the configured world frame, at camera rate
+- `/orb_slam3/robot_pose`, base/robot pose in the world frame (same composition; equals `camera_pose` when `robot2camera` is identity)
+- `/orb_slam3/body_odom`, imu-body odometry in world frame, published at camera rate (IMU modes)
 - `/orb_slam3/tracking_image`, processed image from the left camera with key points and status text
-- `/orb_slam3/tracked_points`, all key points contained in the sliding window
-- `/orb_slam3/all_points`, all key points in the map
+- `/orb_slam3/tracked_points`, map points currently tracked
+- `/orb_slam3/tracked_key_points`, corresponding 2D keypoints (z=0 in the point cloud)
+- `/orb_slam3/all_points`, all key points in the active map
 - `/orb_slam3/kf_markers`, markers for all keyframes' positions
-- `/tf`, with camera and imu-body poses in world frame
+- `/tf`, camera (and imu-body in IMU modes) poses in the world frame; camera TF matches `/camera_pose`
 ### Params
-- `voc_file`: path to vocabulary file required by ORB-SLAM3
+- `voc_file`: path to vocabulary file required by ORB-SLAM3 (`orb_slam3/Vocabulary/ORBvoc.txt.bin`; underwater setups may use `UORBvoc.txt.bin`)
 - `settings_file`: path to settings file required by ORB-SLAM3
-- `enable_pangolin`: enable/disable ORB-SLAM3's Pangolin viewer and interface. (`true` by default)
+- `enable_pangolin`: enable/disable ORB-SLAM3's Pangolin viewer and interface (`true` by default)
+- `world_frame_id`, `cam_frame_id`, `imu_frame_id`: TF / message frames
+- `base_link_frame_id`, `working_path` (stereo node): robot frame for extrinsics lookup and directory for optional KF / loop-closure dumps
 
 ### Services
 - `rosservice call /orb_slam3/save_map [file_name]`: save the map as `[file_name].osa` in `ROS_HOME` folder.
 - `rosservice call /orb_slam3/save_traj [file_name]`: save the estimated trajectory of camera and keyframes as `[file_name]_cam_traj.txt` and  `[file_name]_kf_traj.txt` in `ROS_HOME` folder.
+
+### Extra nodes (optional)
+- `initial_pose_server_node`: serves `get_pose` (often remapped to `get_first_pose`) from parameters or TF, for aligning the first stereo pose to a prior frame.
+- `clock_extender`: after bag playback with `--clock`, keeps publishing `/clock` briefly so nodes can finish shutdown with `use_sim_time`.
 
 ### Docker
 Provided [Dockerfile](Dockerfile) sets up an image based a ROS noetic environment including RealSense SDK

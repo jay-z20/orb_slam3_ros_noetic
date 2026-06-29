@@ -28,6 +28,8 @@
   <depend>dynamic_reconfigure</depend>
   <depend>message_filters</depend>
   <depend>rosgraph_msgs</depend>
+  <depend>visualization_msgs</depend>
+  <depend>geometry_msgs</depend>
 
   <!-- Only Build -->
   <build_depend>message_generation</build_depend>

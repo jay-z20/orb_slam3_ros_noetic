@@ -57,7 +57,7 @@ void setup_services(ros::NodeHandle&, std::string);
 void setup_publishers(ros::NodeHandle&, image_transport::ImageTransport&, std::string);
 void publish_topics(ros::Time, Eigen::Vector3f = Eigen::Vector3f::Zero());
 
-void publish_pose(Sophus::SE3f, ros::Time);
+void publish_pose(const tf2::Transform&, const tf2::Transform&, ros::Time);
 void publish_tracking_img(cv::Mat, ros::Time);
 void publish_tracked_points(std::vector<ORB_SLAM3::MapPoint*>, ros::Time);
 void publish_keypoints(std::vector<ORB_SLAM3::MapPoint*>, std::vector<cv::KeyPoint>, ros::Time);
@@ -65,6 +65,7 @@ sensor_msgs::PointCloud2 keypoints_to_pointcloud(std::vector<cv::KeyPoint>&, ros
 
 void publish_all_points(std::vector<ORB_SLAM3::MapPoint*>, ros::Time);
 void publish_tf_transform(Sophus::SE3f, string, string, ros::Time);
+void publish_tf_transform(const tf2::Transform&, string, string, ros::Time);
 void publish_body_odom(Sophus::SE3f, Eigen::Vector3f, Eigen::Vector3f, ros::Time);
 void publish_kf_markers(std::vector<Sophus::SE3f>, ros::Time);
 

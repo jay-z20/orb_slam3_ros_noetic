@@ -48,6 +48,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   nav_msgs
   std_msgs
+  visualization_msgs
   message_filters
   roscpp
   rospy
@@ -55,7 +56,6 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_ros
   tf2_geometry_msgs
   message_generation
-  message_filters
   rosgraph_msgs
 )
 
@@ -74,8 +74,8 @@ generate_messages(
 )
 
 catkin_package (
-  CATKIN_DEPENDS roscpp rospy std_msgs cv_bridge image_transport tf2 sensor_msgs dynamic_reconfigure message_runtime
-  LIBRARIES {PROJECT_NAME} libDBoW2 libg2o
+  CATKIN_DEPENDS roscpp rospy std_msgs cv_bridge image_transport tf2 sensor_msgs visualization_msgs geometry_msgs dynamic_reconfigure message_runtime
+  LIBRARIES ${PROJECT_NAME}
 )
 
 ## Specify additional locations of header files
@@ -230,29 +230,27 @@ target_link_libraries(ros_rgbd_inertial
   ${catkin_LIBRARIES}
 )
 
-## ROS node
-add_executable(clock_extender 
+## ROS node (sim-time helper; does not need the SLAM library)
+add_executable(clock_extender
   src/clock_extender.cpp
 )
-add_dependencies(clock_extender 
+add_dependencies(clock_extender
   ${catkin_EXPORTED_TARGETS}
 )
-target_link_libraries(clock_extender 
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES} 
+target_link_libraries(clock_extender
+  ${catkin_LIBRARIES}
   ${CMAKE_THREAD_LIBS_INIT}
 )
 
-## ROS node
-add_executable(initial_pose_server_node 
+## ROS node (initial pose service; does not need the SLAM library)
+add_executable(initial_pose_server_node
   src/initial_pose_server.cpp
   src/initial_pose_server_node.cpp
 )
-add_dependencies(initial_pose_server_node 
-  ${catkin_EXPORTED_TARGETS} 
+add_dependencies(initial_pose_server_node
+  ${catkin_EXPORTED_TARGETS}
   ${PROJECT_NAME}_generate_messages_cpp
 )
-target_link_libraries(initial_pose_server_node 
-  ${PROJECT_NAME}
+target_link_libraries(initial_pose_server_node
   ${catkin_LIBRARIES}
 )

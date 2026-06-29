@@ -20,7 +20,18 @@ ros::Publisher tracked_keypoints_pub;
 ros::WallTimer timer;
 ros::ServiceClient initial_pose_client;
 image_transport::Publisher tracking_img_pub;
-tf2::Transform robot2camera, world2initial;
+// Identity by default so mono/RGB-D/inertial nodes publish Twc unchanged.
+// ros_stereo may overwrite these from TF and get_first_pose.
+tf2::Transform robot2camera = [] {
+    tf2::Transform t;
+    t.setIdentity();
+    return t;
+}();
+tf2::Transform world2initial = [] {
+    tf2::Transform t;
+    t.setIdentity();
+    return t;
+}();
 
 //////////////////////////////////////////////////
 // Main functions
@@ -51,7 +62,7 @@ bool save_traj_srv(orb_slam3_ros::SaveMap::Request &req, orb_slam3_ros::SaveMap:
         std::cerr << e.what() << std::endl;
         res.success = false;
     } catch (...) {
-        std::cerr << "Unknows exception" << std::endl;
+        std::cerr << "Unknown exception" << std::endl;
         res.success = false;
     }
 
@@ -95,10 +106,15 @@ void publish_topics(ros::Time msg_time, Eigen::Vector3f Wbb)
 
     if (Twc.translation().array().isNaN()[0] || Twc.rotationMatrix().array().isNaN()(0,0)) // avoid publishing NaN
         return;
-    
-    // Common topics
-    publish_pose(Twc, msg_time);
-    publish_tf_transform(Twc, world_frame_id, cam_frame_id, msg_time);
+
+    // Align stamped poses and TF: apply the same world/extrinsic composition.
+    // With identity robot2camera/world2initial this is exactly Twc (pre-#46 behaviour).
+    const tf2::Transform Twc_tf = SE3f_to_tfTransform(Twc);
+    const tf2::Transform Twrc = world2initial * robot2camera * Twc_tf;
+    const tf2::Transform Twrr = Twrc * robot2camera.inverse();
+
+    publish_pose(Twrc, Twrr, msg_time);
+    publish_tf_transform(Twrc, world_frame_id, cam_frame_id, msg_time);
 
     publish_tracking_img(pSLAM->GetCurrentFrame(), msg_time);
 
@@ -151,37 +167,33 @@ void publish_body_odom(Sophus::SE3f Twb_SE3f, Eigen::Vector3f Vwb_E3f, Eigen::Ve
     odom_pub.publish(odom_msg);
 }
 
-void publish_pose(Sophus::SE3f Twc_SE3f, ros::Time msg_time)
+void publish_pose(const tf2::Transform& Twrc, const tf2::Transform& Twrr, ros::Time msg_time)
 {
-
     geometry_msgs::PoseStamped pose_msg;
     pose_msg.header.frame_id = world_frame_id;
     pose_msg.header.stamp = msg_time;
 
-    tf2::Transform Twc_tf = SE3f_to_tfTransform(Twc_SE3f);
-
-    // {or}^T_{ci} = {or}^T_{r0} * {r}^T_{c} * {oc}^T_{ci}
-    tf2::Transform Twrc = world2initial * robot2camera * Twc_tf;
     tf2::toMsg(Twrc, pose_msg.pose);
     camera_pose_pub.publish(pose_msg);
 
-    // {or}^T_{ri} = {or}^T_{ci} * {c}^T_{r}
-    tf2::Transform Twrr = Twrc * robot2camera.inverse();
     tf2::toMsg(Twrr, pose_msg.pose);
     robot_pose_pub.publish(pose_msg);
 }
 
 void publish_tf_transform(Sophus::SE3f T_SE3f, string frame_id, string child_frame_id, ros::Time msg_time)
 {
+    publish_tf_transform(SE3f_to_tfTransform(T_SE3f), frame_id, child_frame_id, msg_time);
+}
+
+void publish_tf_transform(const tf2::Transform& T, string frame_id, string child_frame_id, ros::Time msg_time)
+{
     static tf2_ros::TransformBroadcaster tf_broadcaster;
-    
+
     geometry_msgs::TransformStamped tf_msg;
     tf_msg.header.stamp = msg_time;
     tf_msg.header.frame_id = frame_id;
     tf_msg.child_frame_id = child_frame_id;
-
-    tf2::Transform tf_transform = SE3f_to_tfTransform(T_SE3f);
-    tf_msg.transform = tf2::toMsg(tf_transform);
+    tf_msg.transform = tf2::toMsg(T);
 
     tf_broadcaster.sendTransform(tf_msg);
 }
@@ -269,7 +281,7 @@ void publish_kf_markers(std::vector<Sophus::SE3f> vKFposes, ros::Time msg_time)
     kf_markers.color.g = 1.0;
     kf_markers.color.a = 1.0;
 
-    for (int i = 0; i <= numKFs; i++)
+    for (int i = 0; i < numKFs; i++)
     {
         geometry_msgs::Point kf_marker;
         kf_marker.x = vKFposes[i].translation().x();

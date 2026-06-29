@@ -31,12 +31,8 @@
                                      /home/bomiquel/datasets/bagfiles/cabrera/2025_02_04/14_21_39_proc/sparus2_stereo_camera_2025-02-04-14-24-39_3.bag
                                      /home/bomiquel/datasets/bagfiles/cabrera/2025_02_04/14_21_39_proc/sparus2_stereo_camera_2025-02-04-14-25-39_4.bag"/> -->
 
-    <!-- Cabrera 2025/10/29 -->
-    <arg name = "bagfile" default = "/home/bomiquel/datasets/bagfiles/cabrera/2025_10_29/12_56_53_proc_3/sparus2_stereo_camera_2025-10-29-11-56-53_0.bag
-                                     /home/bomiquel/datasets/bagfiles/cabrera/2025_10_29/12_56_53_proc_3/sparus2_stereo_camera_2025-10-29-11-59-11_1.bag
-                                     /home/bomiquel/datasets/bagfiles/cabrera/2025_10_29/12_56_53_proc_3/sparus2_stereo_camera_2025-10-29-12-01-12_2.bag
-                                     /home/bomiquel/datasets/bagfiles/cabrera/2025_10_29/12_56_53_proc_3/sparus2_stereo_camera_2025-10-29-12-03-12_3.bag
-                                     /home/bomiquel/datasets/bagfiles/cabrera/2025_10_29/12_56_53_proc_3/sparus2_stereo_camera_2025-10-29-12-05-12_4.bag"/>
+    <!-- Set bagfile to your recorded bag(s); pass multiple paths separated by spaces if needed. -->
+    <arg name="bagfile" default=""/>
 
 
     <!-- Static TF's -->

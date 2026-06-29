@@ -1,2 +1,4 @@
+# Optional defaults for offline stereo runs (loaded by uji_stereo / cabrera_stereo).
+# Override working_path on the orb_slam3 node or replace this file for your machine.
 orb_slam3_ros:
-  working_path: /home/bomiquel/Documents/recerca/slam/single_slam/data/orb_slam3/uji/raw/2024_07_02/execution_0
+  working_path: /tmp/orb_slam3_ros/output

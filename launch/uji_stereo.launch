@@ -26,7 +26,8 @@
 
     <!-- UJI -->
     <!-- 2024_07_02/experiment_0_proc -->
-    <arg name = "bagfile" default = "/home/bomiquel/datasets/bagfiles/uji/2024_07_02/experiment_0_proc/2024-07-02-16-33-14.bag"/>
+    <!-- Set bagfile to your recorded bag(s), e.g. /data/session.bag -->
+    <arg name="bagfile" default=""/>
     <!-- 2024_07_03/experiment_0_square_1_proc -->
     <!-- <arg name = "bagfile" default = "/home/bomiquel/datasets/bagfiles/uji/2024_07_03/experiment_0_square_1_proc/2024-07-03-11-37-31.bag"/> -->
     <!-- 2024_07_04/experiment_0_square_2_proc -->

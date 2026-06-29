@@ -21,7 +21,8 @@
 
 
 // Flag to activate the measurement of time in each process (track,localmap, place recognition).
-#define REGISTER_TIMES
+// Enable only for profiling; writes timing files on Shutdown(working_path).
+//#define REGISTER_TIMES
 
 #include "CameraModels/GeometricCamera.h"
 
