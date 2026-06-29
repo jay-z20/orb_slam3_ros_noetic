@@ -496,7 +496,7 @@ void System::ResetActiveMap()
     mbResetActiveMap = true;
 }
 
-void System::Shutdown()
+void System::Shutdown(const string& working_path)
 {
     {
         unique_lock<mutex> lock(mMutexReset);
@@ -539,7 +539,7 @@ void System::Shutdown()
         pangolin::BindToContext("ORB-SLAM2: Map Viewer");*/
 
 #ifdef REGISTER_TIMES
-    mpTracker->PrintTimeStats();
+    mpTracker->PrintTimeStats(working_path);
 #endif
 
 
@@ -1037,6 +1037,155 @@ void System::SaveTrajectoryEuRoC(const string &filename, Map* pMap)
     }
     f.close();
 }*/
+
+
+void System::SaveKeyFrameTrajectoryCustom(const string &o_path,
+                                          const Sophus::SE3f &Trc,
+                                          const Sophus::SE3f &Twri)
+{
+    string l_path = o_path + ".lock";
+
+    while (ifstream(l_path).good())
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+    ofstream f_lock(l_path.c_str());
+    if(!f_lock) 
+        return;
+
+    ofstream f(o_path.c_str());
+    if (!f.is_open())
+    {
+        cerr << "Error: Could not create output file: " << o_path << endl;
+        f_lock.close();
+        remove(l_path.c_str());
+        return;
+    }
+    f << fixed << setprecision(9) << "timestamp,id,x,y,z,qx,qy,qz,qw\n";
+
+    vector<Map*> vpMaps = mpAtlas->GetAllMaps();
+    for (size_t i = 0; i < vpMaps.size(); i++)
+    {
+        Map* pMap = vpMaps[i];
+        if(!pMap) 
+            continue;
+        {
+            unique_lock<mutex> lock(pMap->mMutexMapUpdate);
+            vector<KeyFrame*> vpKFs = pMap->GetAllKeyFrames();
+            sort(vpKFs.begin(), vpKFs.end(), KeyFrame::lId);
+            for (size_t j = 0; j < vpKFs.size(); j++)
+            {
+                KeyFrame* pKF = vpKFs[j];
+
+                if (!pKF || pKF->isBad())
+                    continue;
+
+                Sophus::SE3f Twc = pKF->GetPoseInverse();
+                Sophus::SE3f Twrr = Twri * Trc * Twc * Trc.inverse();
+                Eigen::Quaternionf q = Twrr.unit_quaternion();
+                Eigen::Vector3f t = Twrr.translation();
+                f << pKF->mTimeStamp << "," << i * 100000 + pKF->mnId << "," << t(0) << "," << t(1) << "," << t(2) << "," << q.x() << "," << q.y() << "," << q.z() << "," << q.w() << "\n";
+            }
+        }
+    }
+    f.close();
+    f_lock.close();
+
+    if (remove(l_path.c_str()) != 0)
+        cerr << "Error deleting the locking file!" << std::endl;
+}
+
+void System::SaveLoopAndMergeEdgesCustom(const string &o_path,
+                                         const Sophus::SE3f &Trc,
+                                         const Sophus::SE3f &Twri)
+{
+    string l_path = o_path + ".lock";
+
+    while (ifstream(l_path).good())
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+    ofstream f_lock(l_path.c_str());
+    if(!f_lock) 
+        return;
+
+    ofstream f(o_path.c_str());
+    if (!f.is_open()) 
+    {
+        cerr << "Error: Could not create output file: " << o_path << endl;
+        f_lock.close();
+        remove(l_path.c_str());
+        return;
+    }
+    f << fixed << setprecision(9) << "frame a,frame b,weights,ax,ay,az,aqx,aqy,aqz,aqw,bx,by,bz,bqx,bqy,bqz,bqw\n";
+
+    vector<Map*> vpMaps = mpAtlas->GetAllMaps();
+    for (size_t i = 0; i < vpMaps.size(); i++) 
+    {
+        Map* pMap = vpMaps[i];
+        if(!pMap) 
+            continue;
+
+        {
+            unique_lock<mutex> lock(pMap->mMutexMapUpdate);
+            vector<KeyFrame*> vpKFs = pMap->GetAllKeyFrames();
+            
+            for (size_t j = 0; j < vpKFs.size(); j++) 
+            {
+                KeyFrame* pKF = vpKFs[j];
+                if (!pKF || pKF->isBad()) 
+                    continue;
+
+                set<KeyFrame*> sLoopEdges = pKF->GetLoopEdges();
+                set<KeyFrame*> sMergeEdges = pKF->GetMergeEdges();
+
+                if (sLoopEdges.empty() && sMergeEdges.empty())
+                    continue;
+
+                Sophus::SE3f Twc1 = pKF->GetPoseInverse();
+                Sophus::SE3f Twrr1 = Twri * Trc * Twc1 * Trc.inverse();
+                Eigen::Vector3f t1 = Twrr1.translation();
+                Eigen::Quaternionf q1 = Twrr1.unit_quaternion();
+
+                for (KeyFrame* pLoopKF : sLoopEdges) 
+                {
+                    if (!pLoopKF || pLoopKF->isBad() || pLoopKF->mnId < pKF->mnId)
+                        continue;
+
+                    int nMatches = pKF->GetWeight(pLoopKF);
+
+                    Sophus::SE3f Twc2 = pLoopKF->GetPoseInverse();
+                    Sophus::SE3f Twrr2 = Twri * Trc * Twc2 * Trc.inverse();
+                    Eigen::Vector3f t2 = Twrr2.translation();
+                    Eigen::Quaternionf q2 = Twrr2.unit_quaternion();
+
+                    f << pKF->mnId << "," << pLoopKF->mnId << "," << nMatches << "," 
+                    << t1(0) << "," << t1(1) << "," << t1(2) << "," << q1.x() << "," << q1.y() << "," << q1.z() << "," << q1.w() << "," 
+                    << t2(0) << "," << t2(1) << "," << t2(2) << "," << q2.x() << "," << q2.y() << "," << q2.z() << "," << q2.w() << "\n";
+                }
+
+                for (KeyFrame* pMergeKF : sMergeEdges) 
+                {
+                    if (!pMergeKF || pMergeKF->isBad() || pMergeKF->mnId < pKF->mnId)
+                        continue;
+
+                    int nMatches = pKF->GetWeight(pMergeKF);
+
+                    Sophus::SE3f Twc2 = pMergeKF->GetPoseInverse();
+                    Sophus::SE3f Twrr2 = Twri * Trc * Twc2 * Trc.inverse();
+                    Eigen::Vector3f t2 = Twrr2.translation();
+                    Eigen::Quaternionf q2 = Twrr2.unit_quaternion();
+
+                    f << pKF->mnId << "," << pMergeKF->mnId << "," << nMatches << "," 
+                    << t1(0) << "," << t1(1) << "," << t1(2) << "," << q1.x() << "," << q1.y() << "," << q1.z() << "," << q1.w() << "," 
+                    << t2(0) << "," << t2(1) << "," << t2(2) << "," << q2.x() << "," << q2.y() << "," << q2.z() << "," << q2.w() << "\n";
+                }
+            }
+        }
+    }
+
+    f.close();
+    f_lock.close();
+    remove(l_path.c_str());
+}
 
 void System::SaveKeyFrameTrajectoryEuRoC(const string &filename)
 {

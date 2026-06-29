@@ -217,12 +217,12 @@ double calcDeviation(vector<int> v_values, double average)
     return sqrt(accum / total);
 }
 
-void Tracking::LocalMapStats2File()
+void Tracking::LocalMapStats2File(const string& working_path)
 {
     ofstream f;
-    f.open("LocalMapTimeStats.txt");
+    f.open(working_path + "LocalMapTimeStats.txt");
     f << fixed << setprecision(6);
-    f << "#Stereo rect[ms], MP culling[ms], MP creation[ms], LBA[ms], KF culling[ms], Total[ms]" << endl;
+    f << "#KF Insertion[ms],MP culling[ms],MP creation[ms],LBA[ms],KF culling[ms],Total[ms]" << endl;
     for(int i=0; i<mpLocalMapper->vdLMTotal_ms.size(); ++i)
     {
         f << mpLocalMapper->vdKFInsert_ms[i] << "," << mpLocalMapper->vdMPCulling_ms[i] << ","
@@ -232,9 +232,9 @@ void Tracking::LocalMapStats2File()
 
     f.close();
 
-    f.open("LBA_Stats.txt");
+    f.open(working_path + "LBA_Stats.txt");
     f << fixed << setprecision(6);
-    f << "#LBA time[ms], KF opt[#], KF fixed[#], MP[#], Edges[#]" << endl;
+    f << "#LBA time[ms],KF opt[#],KF fixed[#],MP[#],Edges[#]" << endl;
     for(int i=0; i<mpLocalMapper->vdLBASync_ms.size(); ++i)
     {
         f << mpLocalMapper->vdLBASync_ms[i] << "," << mpLocalMapper->vnLBA_KFopt[i] << ","
@@ -246,22 +246,82 @@ void Tracking::LocalMapStats2File()
     f.close();
 }
 
-void Tracking::TrackStats2File()
+void Tracking::LoopClosingStats2File(const string& working_path)
 {
     ofstream f;
-    f.open("SessionInfo.txt");
-    f << fixed;
-    f << "Number of KFs: " << mpAtlas->GetAllKeyFrames().size() << endl;
-    f << "Number of MPs: " << mpAtlas->GetAllMapPoints().size() << endl;
-
-    f << "OpenCV version: " << CV_VERSION << endl;
-
+    f.open(working_path + "PlaceRecognitionTimeStats.txt");
+    f << fixed << setprecision(6);
+    f << "#Database Query[ms],SE3 estimation[ms],Total Place Recognition[ms]" << endl;
+    f << calcAverage(mpLoopClosing->vdDataQuery_ms) << "," << calcAverage(mpLoopClosing->vdEstSim3_ms) << "," << calcAverage(mpLoopClosing->vdPRTotal_ms) << endl;
     f.close();
 
-    f.open("TrackingTimeStats.txt");
+    f.open(working_path + "LoopClosingTimeStats.txt");
+    f << fixed << setprecision(6);
+    f << "#Loop Fusion[ms],Essential Graph[ms],Total Loop Closing[ms]" << endl;
+    f << calcAverage(mpLoopClosing->vdLoopFusion_ms) << "," << calcAverage(mpLoopClosing->vdLoopOptEss_ms) << "," << calcAverage(mpLoopClosing->vdLoopTotal_ms) << endl;
+    f.close();
+
+    f.open(working_path + "MapMergingTimeStats.txt");
+    f << fixed << setprecision(6);
+    f << "#Merge Maps[ms],Welding BA[ms],Optimization Ess.[ms],Total Map Merging[ms]" << endl;
+    f << calcAverage(mpLoopClosing->vdMergeMaps_ms) << "," << calcAverage(mpLoopClosing->vdWeldingBA_ms) << "," << calcAverage(mpLoopClosing->vdMergeOptEss_ms) << "," << calcAverage(mpLoopClosing->vdMergeTotal_ms) << endl;
+    f.close();
+
+    f.open(working_path + "FullGBA.txt");
+    f << fixed << setprecision(6);
+    f << "#GBA[ms],Map Update[ms],Total Full GBA[ms]" << endl;
+    f << calcAverage(mpLoopClosing->vdGBA_ms) << "," << calcAverage(mpLoopClosing->vdUpdateMap_ms) << "," << calcAverage(mpLoopClosing->vdFGBATotal_ms) << endl;
+    f.close();
+}
+
+void Tracking::TrackStats2File(const string& working_path)
+{
+    ofstream f;
+    f.open(working_path + "SessionInfo.txt");
+    f << fixed << "#KFs,MPs,OpenCV version" << endl;
+    f << mpAtlas->GetAllKeyFrames().size() << "," << mpAtlas->GetAllKeyFrames().size() << "," << CV_VERSION << endl;
+    f.close();
+
+    f.open(working_path + "KeyframeNum.txt");
+    f << fixed << "#KFs," << endl;
+    f << mpAtlas->GetAllKeyFrames().size() << "," << endl;
+    f.close();
+
+    int loop_closure_num = 0;
+    vector<Map*> vpMaps = mpAtlas->GetAllMaps();
+    for (size_t i = 0; i < vpMaps.size(); i++) 
+    {
+        Map* pMap = vpMaps[i];
+        if(!pMap) 
+            continue;
+
+        {
+            unique_lock<mutex> lock(pMap->mMutexMapUpdate);
+            vector<KeyFrame*> vpKFs = pMap->GetAllKeyFrames();
+            for (size_t j = 0; j < vpKFs.size(); j++) 
+            {
+                KeyFrame* pKF = vpKFs[j];
+                if (!pKF || pKF->isBad()) 
+                    continue;
+
+                loop_closure_num += pKF->GetLoopEdges().size();
+                loop_closure_num += pKF->GetMergeEdges().size();
+            }
+        }
+    }
+    f.open(working_path + "LoopClosureNum.txt");
+    f << fixed << "#LCs," << endl;
+    f << loop_closure_num << "," << endl;
+    f.close();
+    f.open(working_path + "MapsNum.txt");
+    f << fixed << "#Maps," << endl;
+    f << vpMaps.size() << "," << endl;
+    f.close();
+
+    f.open(working_path + "TrackingTimeStats.txt");
     f << fixed << setprecision(6);
 
-    f << "#Image Rect[ms], Image Resize[ms], ORB ext[ms], Stereo match[ms], IMU preint[ms], Pose pred[ms], LM track[ms], KF dec[ms], Total[ms]" << endl;
+    f << "#Image Rect[ms],Image Resize[ms],ORB ext[ms],Stereo match[ms],IMU preint[ms],Pose pred[ms],LM track[ms],KF dec[ms],Total[ms]" << endl;
 
     for(int i=0; i<vdTrackTotal_ms.size(); ++i)
     {
@@ -296,15 +356,15 @@ void Tracking::TrackStats2File()
     f.close();
 }
 
-void Tracking::PrintTimeStats()
+void Tracking::PrintTimeStats(const string& working_path)
 {
     // Save data in files
-    TrackStats2File();
-    LocalMapStats2File();
-
+    TrackStats2File(working_path);
+    LocalMapStats2File(working_path);
+    LoopClosingStats2File(working_path);
 
     ofstream f;
-    f.open("ExecMean.txt");
+    f.open(working_path + "ExecMean.txt");
     f << fixed;
     //Report the mean and std of each one
     std::cout << std::endl << " TIME STATS in ms (mean$\\pm$std)" << std::endl;

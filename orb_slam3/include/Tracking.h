@@ -183,9 +183,10 @@ public:
     bool mbWriteStats;
 
 #ifdef REGISTER_TIMES
-    void LocalMapStats2File();
-    void TrackStats2File();
-    void PrintTimeStats();
+    void LocalMapStats2File(const string& working_path = "");
+    void LoopClosingStats2File(const string& working_path = "");
+    void TrackStats2File(const string& working_path = "");
+    void PrintTimeStats(const string& working_path = "");
 
     vector<double> vdRectStereo_ms;
     vector<double> vdResizeImage_ms;

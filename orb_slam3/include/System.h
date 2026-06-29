@@ -138,7 +138,7 @@ public:
     // All threads will be requested to finish.
     // It waits until all threads have finished.
     // This function must be called before saving the trajectory.
-    void Shutdown();
+    void Shutdown(const string& working_path = "");
     bool isShutDown();
 
     // Save camera trajectory in the TUM RGB-D dataset format.
@@ -155,6 +155,14 @@ public:
 
     void SaveTrajectoryEuRoC(const string &filename);
     void SaveKeyFrameTrajectoryEuRoC(const string &filename);
+
+    void SaveKeyFrameTrajectoryCustom(const string &filename,
+                                      const Sophus::SE3f &Trc,
+                                      const Sophus::SE3f &Twri);
+
+    void SaveLoopAndMergeEdgesCustom(const string &filename,
+                                     const Sophus::SE3f &Trc,
+                                     const Sophus::SE3f &Twri);
 
     void SaveTrajectoryEuRoC(const string &filename, Map* pMap);
     void SaveKeyFrameTrajectoryEuRoC(const string &filename, Map* pMap);

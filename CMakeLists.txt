@@ -51,26 +51,30 @@ find_package(catkin REQUIRED COMPONENTS
   message_filters
   roscpp
   rospy
-  tf
   tf2
+  tf2_ros
+  tf2_geometry_msgs
   message_generation
+  message_filters
+  rosgraph_msgs
 )
 
 find_package(Eigen3 3.1.0 REQUIRED)
 find_package(Pangolin REQUIRED)
 
 add_service_files(
-  FILES
-  SaveMap.srv
+  DIRECTORY srv
+  FILES SaveMap.srv GetTransform.srv
 )
 
 generate_messages(
   DEPENDENCIES
   std_msgs
+  geometry_msgs
 )
 
 catkin_package (
-  CATKIN_DEPENDS roscpp rospy std_msgs cv_bridge image_transport tf sensor_msgs dynamic_reconfigure message_runtime
+  CATKIN_DEPENDS roscpp rospy std_msgs cv_bridge image_transport tf2 sensor_msgs dynamic_reconfigure message_runtime
   LIBRARIES {PROJECT_NAME} libDBoW2 libg2o
 )
 
@@ -169,7 +173,7 @@ target_link_libraries(${PROJECT_NAME}
 ## ROS node
 add_executable(ros_mono
   src/ros_mono.cc
-  src/common.cc
+  src/custom_common.cc
 )
 target_link_libraries(ros_mono
   ${PROJECT_NAME}
@@ -179,7 +183,7 @@ target_link_libraries(ros_mono
 ## ROS node
 add_executable(ros_mono_inertial 
   src/ros_mono_inertial.cc
-  src/common.cc
+  src/custom_common.cc
 )
 target_link_libraries(ros_mono_inertial 
   ${PROJECT_NAME}
@@ -189,7 +193,7 @@ target_link_libraries(ros_mono_inertial
 ## ROS node
 add_executable(ros_stereo 
   src/ros_stereo.cc
-  src/common.cc
+  src/custom_common.cc
 )
 target_link_libraries(ros_stereo
   ${PROJECT_NAME}
@@ -199,7 +203,7 @@ target_link_libraries(ros_stereo
 ## ROS node
 add_executable(ros_stereo_inertial
   src/ros_stereo_inertial.cc
-  src/common.cc
+  src/custom_common.cc
 )
 target_link_libraries(ros_stereo_inertial 
   ${PROJECT_NAME}
@@ -209,7 +213,7 @@ target_link_libraries(ros_stereo_inertial
 ## ROS node
 add_executable(ros_rgbd
   src/ros_rgbd.cc
-  src/common.cc
+  src/custom_common.cc
 )
 target_link_libraries(ros_rgbd
   ${PROJECT_NAME}
@@ -219,9 +223,36 @@ target_link_libraries(ros_rgbd
 ## ROS node
 add_executable(ros_rgbd_inertial
   src/ros_rgbd_inertial.cc
-  src/common.cc
+  src/custom_common.cc
 )
 target_link_libraries(ros_rgbd_inertial
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+)
+
+## ROS node
+add_executable(clock_extender 
+  src/clock_extender.cpp
+)
+add_dependencies(clock_extender 
+  ${catkin_EXPORTED_TARGETS}
+)
+target_link_libraries(clock_extender 
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES} 
+  ${CMAKE_THREAD_LIBS_INIT}
+)
+
+## ROS node
+add_executable(initial_pose_server_node 
+  src/initial_pose_server.cpp
+  src/initial_pose_server_node.cpp
+)
+add_dependencies(initial_pose_server_node 
+  ${catkin_EXPORTED_TARGETS} 
+  ${PROJECT_NAME}_generate_messages_cpp
+)
+target_link_libraries(initial_pose_server_node 
   ${PROJECT_NAME}
   ${catkin_LIBRARIES}
 )
