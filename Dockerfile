@@ -14,6 +14,9 @@ RUN apt-get update && \
         build-essential \
         cmake \
         libeigen3-dev \
+        libepoxy-dev \
+        libgl1-mesa-dev \
+        libglew-dev \
         ros-${ROS_DISTRO}-hector-trajectory-server \
         python3-catkin-tools \
         libopencv-dev && \
@@ -22,12 +25,16 @@ RUN apt-get update && \
 
 WORKDIR /root
 
-RUN git clone https://github.com/stevenlovegrove/Pangolin.git && \
+# Pin Pangolin to a release that builds cleanly against Ubuntu 20.04 / OpenEXR 2.x
+# (master may fail on half.h deprecated-copy when treating warnings as errors).
+RUN git clone --branch v0.8 --depth 1 https://github.com/stevenlovegrove/Pangolin.git && \
     cd Pangolin && \
     mkdir build && cd build && \
-    cmake .. && \
-    make -j && \
-    make install
+    cmake .. -DCMAKE_BUILD_TYPE=Release \
+      -DBUILD_EXAMPLES=OFF -DBUILD_TOOLS=OFF -DBUILD_PANGOLIN_PYTHON=OFF && \
+    make -j$(nproc) && \
+    make install && \
+    ldconfig
 
 RUN mkdir -p catkin_ws/src && \
     cd catkin_ws/src && \

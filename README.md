@@ -8,6 +8,11 @@ This package uses ```catkin build```. Tested on Ubuntu 20.04.
 ```
 sudo apt install libeigen3-dev
 ```
+### Epoxy
+Required by recent Pangolin releases (OpenGL binding). Missing this causes `Could NOT find epoxy` during Pangolin configuration.
+```
+sudo apt install libepoxy-dev
+```
 ### Pangolin
 ```
 cd ~
@@ -18,6 +23,7 @@ cmake ..
 make
 sudo make install
 ```
+
 ### OpenCV
 Check the OpenCV version on your computer (required [at least 3.0](https://github.com/UZ-SLAMLab/ORB_SLAM3)):
 ```
