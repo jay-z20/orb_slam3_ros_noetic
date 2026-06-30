@@ -170,11 +170,18 @@ target_link_libraries(${PROJECT_NAME}
   -lcrypto
 )
 
+## Ensure generated srv headers exist before compiling nodes that include them
+set(ORB_SLAM3_ROS_MSG_DEPS
+  ${${PROJECT_NAME}_EXPORTED_TARGETS}
+  ${catkin_EXPORTED_TARGETS}
+)
+
 ## ROS node
 add_executable(ros_mono
   src/ros_mono.cc
   src/custom_common.cc
 )
+add_dependencies(ros_mono ${ORB_SLAM3_ROS_MSG_DEPS})
 target_link_libraries(ros_mono
   ${PROJECT_NAME}
   ${catkin_LIBRARIES}
@@ -185,6 +192,7 @@ add_executable(ros_mono_inertial
   src/ros_mono_inertial.cc
   src/custom_common.cc
 )
+add_dependencies(ros_mono_inertial ${ORB_SLAM3_ROS_MSG_DEPS})
 target_link_libraries(ros_mono_inertial 
   ${PROJECT_NAME}
   ${catkin_LIBRARIES}
@@ -195,6 +203,7 @@ add_executable(ros_stereo
   src/ros_stereo.cc
   src/custom_common.cc
 )
+add_dependencies(ros_stereo ${ORB_SLAM3_ROS_MSG_DEPS})
 target_link_libraries(ros_stereo
   ${PROJECT_NAME}
   ${catkin_LIBRARIES}
@@ -205,6 +214,7 @@ add_executable(ros_stereo_inertial
   src/ros_stereo_inertial.cc
   src/custom_common.cc
 )
+add_dependencies(ros_stereo_inertial ${ORB_SLAM3_ROS_MSG_DEPS})
 target_link_libraries(ros_stereo_inertial 
   ${PROJECT_NAME}
   ${catkin_LIBRARIES}
@@ -215,6 +225,7 @@ add_executable(ros_rgbd
   src/ros_rgbd.cc
   src/custom_common.cc
 )
+add_dependencies(ros_rgbd ${ORB_SLAM3_ROS_MSG_DEPS})
 target_link_libraries(ros_rgbd
   ${PROJECT_NAME}
   ${catkin_LIBRARIES}
@@ -225,6 +236,7 @@ add_executable(ros_rgbd_inertial
   src/ros_rgbd_inertial.cc
   src/custom_common.cc
 )
+add_dependencies(ros_rgbd_inertial ${ORB_SLAM3_ROS_MSG_DEPS})
 target_link_libraries(ros_rgbd_inertial
   ${PROJECT_NAME}
   ${catkin_LIBRARIES}
