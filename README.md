@@ -156,6 +156,7 @@ By default `world2initial` and `robot2camera` are **identity**, so behaviour mat
 ### Services
 - `rosservice call /orb_slam3/save_map [file_name]`: save the map as `[file_name].osa` in `ROS_HOME` folder.
 - `rosservice call /orb_slam3/save_traj [file_name]`: save the estimated trajectory of camera and keyframes as `[file_name]_cam_traj.txt` and  `[file_name]_kf_traj.txt` in `ROS_HOME` folder.
+  Prefer calling **after** bag playback / when the camera is idle (or right before stopping the node). Invoking `save_traj` while tracking is actively processing frames can block the node for a long time because trajectory export locks internal SLAM state.
 
 ### Extra nodes (optional)
 - `initial_pose_server_node`: serves `get_pose` (often remapped to `get_first_pose`) from parameters or TF, for aligning the first stereo pose to a prior frame.

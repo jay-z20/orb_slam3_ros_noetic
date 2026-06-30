@@ -54,10 +54,15 @@ bool save_traj_srv(orb_slam3_ros::SaveMap::Request &req, orb_slam3_ros::SaveMap:
     const string cam_traj_file = req.name + "_cam_traj.txt";
     const string kf_traj_file = req.name + "_kf_traj.txt";
 
+    // Trajectory export takes internal SLAM locks and can stall the node if called
+    // while Track* is running. Prefer end-of-session / idle camera.
+    ROS_WARN("save_traj: writing trajectories (may block if tracking is active); prefer idle camera or session end.");
+
     try {
         pSLAM->SaveTrajectoryEuRoC(cam_traj_file);
         pSLAM->SaveKeyFrameTrajectoryEuRoC(kf_traj_file);
         res.success = true;
+        ROS_INFO("Trajectories saved as %s and %s", cam_traj_file.c_str(), kf_traj_file.c_str());
     } catch (const std::exception &e) {
         std::cerr << e.what() << std::endl;
         res.success = false;
